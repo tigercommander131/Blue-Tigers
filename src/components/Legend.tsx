@@ -4,7 +4,7 @@
 export function Legend() {
   return (
     <div className="legend" role="note">
-      <span className="legend-title">What am I looking at?</span>
+      <span className="legend-title">How to read this</span>
       <span className="legend-item">
         <i className="swatch swatch-source" /> Source events
         <em>recorded by the simulator</em>

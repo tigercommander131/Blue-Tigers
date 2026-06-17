@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import type { Note } from '../data/types';
-import { mmss } from '../lib/format';
+import { clock } from '../lib/format';
 import { PinIcon, TrashIcon } from './icons';
 
 interface Props {
@@ -37,11 +37,12 @@ export function NotesPanel({ notes, currentTime, addNote, removeNote, onSeek }: 
         <span className="tag tag-source">Saved locally</span>
       </div>
 
-      <div className="note-input">
+      <div className="note-input no-print">
         <textarea
           value={text}
           onChange={(e) => setText(e.target.value)}
           placeholder="Add an observation…"
+          aria-label="Note text"
           rows={2}
           onKeyDown={(e) => {
             if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) submit();
@@ -50,7 +51,7 @@ export function NotesPanel({ notes, currentTime, addNote, removeNote, onSeek }: 
         <div className="note-actions">
           <label className={`pin-toggle ${pin ? 'on' : ''}`}>
             <input type="checkbox" checked={pin} onChange={(e) => setPin(e.target.checked)} />
-            <PinIcon /> pin @ {mmss(currentTime)}
+            <PinIcon /> pin @ {clock(currentTime)}
           </label>
           <button className="add-note" onClick={submit} disabled={!text.trim()}>
             Add note
@@ -59,19 +60,21 @@ export function NotesPanel({ notes, currentTime, addNote, removeNote, onSeek }: 
       </div>
 
       {sorted.length === 0 ? (
-        <p className="muted notes-empty">No notes yet.</p>
+        <p className="muted notes-empty">
+          No instructor notes yet — type above, or pin one to the current timestamp.
+        </p>
       ) : (
         <ul className="note-list">
           {sorted.map((n) => (
             <li key={n.id} className="note-item">
               {n.time !== null && (
                 <button className="note-time" onClick={() => onSeek(n.time as number)}>
-                  {mmss(n.time)}
+                  {clock(n.time)}
                 </button>
               )}
               <span className="note-text">{n.text}</span>
               <button
-                className="note-del"
+                className="note-del no-print"
                 onClick={() => removeNote(n.id)}
                 aria-label="Delete note"
               >

@@ -18,15 +18,24 @@ its own visual treatment and a permanent on-screen legend:
 
 | Layer | What it is | Where it lives | Colour |
 |-------|-----------|----------------|--------|
-| **1 · Source events** | Raw events straight from the simulator. Never altered. | `src/data/` | slate |
-| **2 · Calculated facts** | Deterministic metrics derived purely from timestamps (time to CPR, time to first shock, time to ROSC, pre-CPR no-flow…). Each one shows its clinical target, a pass/warn status, and **which source events it was derived from**. | `src/lib/metrics.ts` | teal |
-| **3 · AI suggestions** | A debrief summary, suggested discussion points, and "moments worth reviewing." Fenced off behind a *Simulated AI* badge and disclaimer. | `src/lib/aiDebrief.ts` | amber |
+| **1 · Source events** | Raw events straight from the simulator. Never altered. Each carries a stable `code` so logic never depends on the display text. | `src/data/` | slate |
+| **2 · Calculated facts** | Deterministic metrics derived purely from event timestamps (time to CPR, time to defibrillation, CPR→shock, downtime…). Each shows its clinical target, a pass/warn status, the delta vs target, and **which source events it was derived from**. Also drives the outcome hero and timeline phases. | `src/lib/metrics.ts`, `src/lib/summary.ts` | teal |
+| **3 · AI suggestions** | A debrief summary, suggested discussion points, and "moments worth reviewing." Fenced off behind a *Simulated · review before use* badge. | `src/lib/aiDebrief.ts` | amber |
+
+The screen opens with an **outcome hero** — ROSC achieved / no ROSC, the headline
+times (downtime, time-to-CPR, time-to-defib), and an ACLS *targets-met* score — so
+an instructor knows the result before scanning a single card. The **calculated
+facts** carry a compliance summary and, per card, a status word and the exact
+delta vs the clinical target (e.g. `+0:07 over`).
 
 On top of that sits a **playback scrubber**: a single `currentTime` cursor that
-the timeline, the clock, and the markers all react to. Press play and the events
-light up in real time; click any event — or any AI "review moment" — to jump the
-playhead there. Instructors can also leave **notes pinned to a timestamp**, saved
-to `localStorage` so they survive a refresh.
+the timeline, the clock, and the markers all react to. The **timeline is grouped
+into clinical phases** (pre-arrest → resuscitation → post-ROSC), shaded so the
+shape of the case is visible at a glance. Press play and the events light up in
+real time; click any event — or any AI "review moment" — to jump the playhead
+there. Instructors can leave **notes pinned to a timestamp** (saved to
+`localStorage`), switch a **light/dark clinical theme**, and **print** a clean
+one-page debrief sheet (`@media print`).
 
 ### Why the "AI" can't lie about a number
 The simulated AI layer only ever *phrases and prioritises* the Layer-2 facts —
@@ -50,9 +59,19 @@ else changes.
 
 ## Technologies
 - **React 19 + TypeScript + Vite**
-- **Vitest** for unit tests on the deterministic metrics layer
-- No UI/runtime dependencies beyond React — icons are hand-rolled inline SVG,
-  styling is plain CSS with a small design-token system.
+- **Vitest** for unit tests on the deterministic layer (metrics, summary, phases,
+  and that the AI uses real event times)
+- No UI/runtime dependencies beyond React — icons are hand-rolled inline SVG;
+  styling is plain CSS with light/dark design tokens.
+
+## Robustness
+The deterministic layer is hardened against messy input: events are sorted before
+any calculation (no negative intervals), all lookups key off the stable `code`
+(a renamed event can't silently drop a metric), missing events degrade gracefully
+rather than crash, the AI narrative only asserts what the events support, and
+notes from `localStorage` are shape-validated on load with a `crypto.randomUUID`
+fallback for non-secure contexts. Keyboard focus is visible throughout and the
+scrubber announces `mm:ss` to screen readers.
 
 ## AI tools used
 Built with **Claude Code (Claude Opus)** — used for scaffolding, the metrics/AI

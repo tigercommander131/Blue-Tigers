@@ -1,5 +1,5 @@
-import type { Metric, SessionData, SimEvent } from '../data/types';
-import { dur } from './format';
+import type { EventCode, Metric, SessionData, SimEvent } from '../data/types';
+import { clock } from './format';
 
 // ---------------------------------------------------------------------------
 // CALCULATED FACTS (Layer 2).
@@ -9,113 +9,126 @@ import { dur } from './format';
 // same numbers, which is exactly what you want for anything a clinician might
 // act on. The "AI" layer consumes these; it never recomputes them.
 //
+// All lookups key off the stable `code`, not the display string, so a label
+// change in the simulator can't silently drop a metric. Events are sorted by
+// time first, so out-of-order input can't produce a negative interval.
+//
 // Clinical targets below are illustrative ACLS-style references for the
 // prototype, not a validated clinical ruleset.
 // ---------------------------------------------------------------------------
 
-/** First event whose type matches (case-insensitive substring), or undefined. */
-function firstEvent(events: SimEvent[], match: string): SimEvent | undefined {
-  const m = match.toLowerCase();
-  return events.find((e) => e.type.toLowerCase().includes(m));
+/** Events sorted chronologically — the basis for every calculation. */
+export function sortedEvents(data: SessionData): SimEvent[] {
+  return [...data.events].sort((a, b) => a.time - b.time);
 }
 
-/** Seconds between two events, or null if either is missing. */
+/** First event with a given code, or undefined. */
+export function findByCode(events: SimEvent[], code: EventCode): SimEvent | undefined {
+  return events.find((e) => e.code === code);
+}
+
+/** Non-negative seconds between two events, or null if either is missing. */
 function gap(a?: SimEvent, b?: SimEvent): number | null {
   if (!a || !b) return null;
-  return b.time - a.time;
+  return Math.max(0, b.time - a.time);
 }
 
 export function computeMetrics(data: SessionData): Metric[] {
-  const { events, session } = data;
+  const events = sortedEvents(data);
+  const { session } = data;
 
-  const arrest = firstEvent(events, 'Ventricular Fibrillation');
-  const cpr = firstEvent(events, 'CPR Started');
-  const shock = firstEvent(events, 'Shock Delivered');
-  const adrenaline = firstEvent(events, 'Adrenaline');
-  const rosc = firstEvent(events, 'Return of Spontaneous Circulation');
+  const arrest = findByCode(events, 'vf');
+  const cpr = findByCode(events, 'cpr');
+  const shock = findByCode(events, 'shock');
+  const adrenaline = findByCode(events, 'adrenaline');
+  const rosc = findByCode(events, 'rosc');
 
   const metrics: Metric[] = [];
 
-  // Time from arrest recognition to start of compressions.
+  // Recognition of arrest -> first chest compressions. (Counted.)
   const toCpr = gap(arrest, cpr);
   if (toCpr !== null) {
     metrics.push({
       id: 'time-to-cpr',
       label: 'Time to CPR',
-      value: dur(toCpr),
+      value: clock(toCpr),
       seconds: toCpr,
       derivedFrom: ['Ventricular Fibrillation', 'CPR Started'],
-      target: '< 10s after arrest',
+      target: '< 0:10',
+      targetSeconds: 10,
+      counted: true,
       status: toCpr <= 10 ? 'good' : toCpr <= 20 ? 'warn' : 'bad',
       note: 'Recognition of VF to first chest compressions.',
     });
   }
 
-  // Time from arrest to first defibrillation (shockable rhythm).
+  // Arrest -> first defibrillation (shockable rhythm). (Counted.)
   const toShock = gap(arrest, shock);
   if (toShock !== null) {
     metrics.push({
       id: 'time-to-shock',
-      label: 'Time to First Shock',
-      value: dur(toShock),
+      label: 'Time to Defibrillation',
+      value: clock(toShock),
       seconds: toShock,
       derivedFrom: ['Ventricular Fibrillation', 'Shock Delivered'],
-      target: '< 2 min after arrest',
+      target: '< 2:00',
+      targetSeconds: 120,
+      counted: true,
       status: toShock <= 120 ? 'good' : toShock <= 180 ? 'warn' : 'bad',
       note: 'VF onset to first defibrillation.',
     });
   }
 
-  // Time from arrest to first adrenaline.
+  // Compressions -> first shock (context: time on CPR before defib).
+  const cprToShock = gap(cpr, shock);
+  if (cprToShock !== null) {
+    metrics.push({
+      id: 'cpr-to-shock',
+      label: 'CPR → Shock',
+      value: clock(cprToShock),
+      seconds: cprToShock,
+      derivedFrom: ['CPR Started', 'Shock Delivered'],
+      status: 'info',
+      note: 'Compressions delivered before the first shock.',
+    });
+  }
+
+  // Arrest -> first adrenaline.
   const toAdr = gap(arrest, adrenaline);
   if (toAdr !== null) {
     metrics.push({
       id: 'time-to-adrenaline',
       label: 'Time to Adrenaline',
-      value: dur(toAdr),
+      value: clock(toAdr),
       seconds: toAdr,
       derivedFrom: ['Ventricular Fibrillation', 'Adrenaline Given'],
-      target: 'after 2nd shock (shockable)',
+      target: 'after 2nd shock',
       status: 'info',
       note: 'VF onset to first adrenaline dose.',
     });
   }
 
-  // Time from arrest to return of spontaneous circulation.
+  // Arrest -> return of spontaneous circulation (total downtime). No fixed
+  // target band, so this is context (info), not a pass/fail.
   const toRosc = gap(arrest, rosc);
   if (toRosc !== null) {
     metrics.push({
       id: 'time-to-rosc',
-      label: 'Time to ROSC',
-      value: dur(toRosc),
+      label: 'Arrest Downtime',
+      value: clock(toRosc),
       seconds: toRosc,
       derivedFrom: ['Ventricular Fibrillation', 'Return of Spontaneous Circulation'],
       target: 'shorter is better',
-      status: 'good',
-      note: 'Total arrest downtime: VF onset to ROSC.',
+      status: 'info',
+      note: 'VF onset to ROSC — total time in arrest.',
     });
   }
 
-  // No-flow interval before compressions began (time the patient had no
-  // circulation support). Here it equals the recognition-to-CPR gap.
-  if (toCpr !== null) {
-    metrics.push({
-      id: 'no-flow',
-      label: 'Pre-CPR No-Flow',
-      value: dur(toCpr),
-      seconds: toCpr,
-      derivedFrom: ['Ventricular Fibrillation', 'CPR Started'],
-      target: 'minimise',
-      status: toCpr <= 10 ? 'good' : 'warn',
-      note: 'Window from arrest to compressions with no circulatory support.',
-    });
-  }
-
-  // Total session length (context, not performance).
+  // Total session length (context).
   metrics.push({
     id: 'duration',
-    label: 'Session Duration',
-    value: dur(session.durationSeconds),
+    label: 'Session Length',
+    value: clock(session.durationSeconds),
     seconds: session.durationSeconds,
     derivedFrom: ['Scenario Started', 'Scenario Finished'],
     status: 'info',
@@ -125,7 +138,7 @@ export function computeMetrics(data: SessionData): Metric[] {
   return metrics;
 }
 
-/** Convenience: look a metric up by id (used by the AI layer). */
+/** Look a metric up by id (used by the AI + summary layers). */
 export function metricById(metrics: Metric[], id: string): Metric | undefined {
   return metrics.find((m) => m.id === id);
 }

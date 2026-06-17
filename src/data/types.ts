@@ -14,11 +14,28 @@ export interface Participant {
   role: string;
 }
 
+/**
+ * Stable machine code for an event. The human `type` string is for display;
+ * all logic keys off `code` so a label change in the simulator never breaks a
+ * calculation. ('other' = an event we don't specifically reason about.)
+ */
+export type EventCode =
+  | 'start'
+  | 'vf'
+  | 'cpr'
+  | 'shock'
+  | 'adrenaline'
+  | 'rosc'
+  | 'finish'
+  | 'other';
+
 export interface SimEvent {
   /** Seconds from scenario start. */
   time: number;
   /** Human-readable event name as emitted by the simulator. */
   type: string;
+  /** Stable code used by all downstream logic. */
+  code: EventCode;
 }
 
 export interface SessionData {
@@ -39,18 +56,45 @@ export type MetricStatus = 'good' | 'warn' | 'bad' | 'info';
 export interface Metric {
   id: string;
   label: string;
-  /** Formatted value for display, e.g. "17s" or "00:17". */
+  /** Formatted value for display, e.g. "0:17". */
   value: string;
   /** Raw seconds when the metric is a duration, for sorting / logic. */
   seconds?: number;
   /** Source event types this fact was computed from — traceability. */
   derivedFrom: string[];
-  /** Optional clinical target string, e.g. "< 10s (ACLS)". */
+  /** Optional clinical target string, e.g. "< 0:10". */
   target?: string;
+  /** Numeric target threshold in seconds, for delta calculations. */
+  targetSeconds?: number;
+  /** Whether this metric counts toward the guideline-compliance score. */
+  counted?: boolean;
   /** Pass / warn / fail against the target. */
   status: MetricStatus;
   /** One-line plain explanation of how this was calculated. */
   note: string;
+}
+
+/** A clinical phase of the case, derived from the source events. */
+export interface Phase {
+  key: 'pre' | 'arrest' | 'post';
+  label: string;
+  start: number;
+  end: number;
+  tone: 'neutral' | 'crisis' | 'good';
+}
+
+export interface HeroStat {
+  label: string;
+  value: string;
+}
+
+/** High-level outcome + headline numbers, all deterministic. */
+export interface SessionSummary {
+  rosc: boolean;
+  outcomeLabel: string;
+  heroStats: HeroStat[];
+  targetsMet: number;
+  targetsTotal: number;
 }
 
 // ---------------------------------------------------------------------------

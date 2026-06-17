@@ -72,3 +72,31 @@ export const SparkIcon = (p: P) => (
     <path d="M19 3v3M20.5 4.5h-3" />
   </svg>
 );
+export const SunIcon = (p: P) => (
+  <svg {...base(p)}>
+    <circle cx="12" cy="12" r="4" />
+    <path d="M12 2v2M12 20v2M2 12h2M20 12h2M5 5l1.5 1.5M17.5 17.5 19 19M19 5l-1.5 1.5M6.5 17.5 5 19" />
+  </svg>
+);
+export const MoonIcon = (p: P) => (
+  <svg {...base(p)}>
+    <path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z" />
+  </svg>
+);
+export const PrinterIcon = (p: P) => (
+  <svg {...base(p)}>
+    <path d="M6 9V3h12v6M6 18H4v-7h16v7h-2M8 14h8v7H8z" />
+  </svg>
+);
+export const TargetIcon = (p: P) => (
+  <svg {...base(p)}>
+    <circle cx="12" cy="12" r="9" />
+    <circle cx="12" cy="12" r="5" />
+    <circle cx="12" cy="12" r="1.5" fill="currentColor" stroke="none" />
+  </svg>
+);
+export const ActivityIcon = (p: P) => (
+  <svg {...base(p)}>
+    <path d="M3 12h4l2-6 4 12 2-6h6" />
+  </svg>
+);

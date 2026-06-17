@@ -1,6 +1,6 @@
 import type { SimEvent } from '../data/types';
 import type { Playback as PlaybackState } from '../hooks/usePlayback';
-import { mmss } from '../lib/format';
+import { clock } from '../lib/format';
 import { eventMeta } from './eventMeta';
 import { PlayIcon, PauseIcon } from './icons';
 
@@ -18,10 +18,11 @@ const SPEEDS = [1, 2, 4];
  */
 export function Playback({ playback, events, duration }: Props) {
   const { currentTime, isPlaying, speed, toggle, seek, setSpeed } = playback;
-  const pct = (currentTime / duration) * 100;
+  const safeDuration = duration > 0 ? duration : 1;
+  const pct = (currentTime / safeDuration) * 100;
 
   return (
-    <section className="playback panel">
+    <section className="playback panel no-print">
       <button className="play-btn" onClick={toggle} aria-label={isPlaying ? 'Pause' : 'Play'}>
         {isPlaying ? <PauseIcon /> : <PlayIcon />}
       </button>
@@ -30,17 +31,17 @@ export function Playback({ playback, events, duration }: Props) {
         <div className="scrubber-track">
           <div className="scrubber-fill" style={{ width: `${pct}%` }} />
           {events.map((e) => {
-            const { tone } = eventMeta(e.type);
-            const left = (e.time / duration) * 100;
+            const { tone } = eventMeta(e.code);
+            const left = (e.time / safeDuration) * 100;
             const fired = e.time <= currentTime;
             return (
               <button
-                key={`${e.time}-${e.type}`}
+                key={`${e.time}-${e.code}`}
                 className={`marker tone-${tone} ${fired ? 'fired' : ''}`}
                 style={{ left: `${left}%` }}
-                title={`${mmss(e.time)} — ${e.type}`}
+                title={`${clock(e.time)} — ${e.type}`}
                 onClick={() => seek(e.time)}
-                aria-label={`Seek to ${e.type} at ${mmss(e.time)}`}
+                aria-label={`Seek to ${e.type} at ${clock(e.time)}`}
               />
             );
           })}
@@ -55,12 +56,13 @@ export function Playback({ playback, events, duration }: Props) {
           value={Math.round(currentTime)}
           onChange={(e) => seek(Number(e.target.value))}
           aria-label="Seek through session"
+          aria-valuetext={`${clock(currentTime)} of ${clock(duration)}`}
         />
       </div>
 
       <div className="playback-right">
         <span className="clock">
-          {mmss(currentTime)} <span className="muted">/ {mmss(duration)}</span>
+          {clock(currentTime)} <span className="muted">/ {clock(duration)}</span>
         </span>
         <div className="speeds">
           {SPEEDS.map((s) => (
@@ -68,6 +70,7 @@ export function Playback({ playback, events, duration }: Props) {
               key={s}
               className={`speed ${speed === s ? 'active' : ''}`}
               onClick={() => setSpeed(s)}
+              aria-pressed={speed === s}
             >
               {s}×
             </button>

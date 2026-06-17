@@ -1,4 +1,5 @@
 import type { ComponentType, SVGProps } from 'react';
+import type { EventCode } from '../data/types';
 import {
   BoltIcon,
   CheckIcon,
@@ -16,13 +17,20 @@ export interface EventMeta {
   tone: 'crisis' | 'good' | 'warn' | 'accent' | 'neutral';
 }
 
-/** Map a source event type to an icon + colour tone for the timeline. */
-export function eventMeta(type: string): EventMeta {
-  const t = type.toLowerCase();
-  if (t.includes('fibrillation')) return { Icon: HeartPulseIcon, tone: 'crisis' };
-  if (t.includes('cpr')) return { Icon: HeartIcon, tone: 'accent' };
-  if (t.includes('shock')) return { Icon: BoltIcon, tone: 'warn' };
-  if (t.includes('adrenaline')) return { Icon: SyringeIcon, tone: 'accent' };
-  if (t.includes('spontaneous')) return { Icon: CheckIcon, tone: 'good' };
-  return { Icon: FlagIcon, tone: 'neutral' };
+/** Map a source event code to an icon + colour tone for the timeline. */
+export function eventMeta(code: EventCode): EventMeta {
+  switch (code) {
+    case 'vf':
+      return { Icon: HeartPulseIcon, tone: 'crisis' };
+    case 'cpr':
+      return { Icon: HeartIcon, tone: 'accent' };
+    case 'shock':
+      return { Icon: BoltIcon, tone: 'warn' };
+    case 'adrenaline':
+      return { Icon: SyringeIcon, tone: 'accent' };
+    case 'rosc':
+      return { Icon: CheckIcon, tone: 'good' };
+    default:
+      return { Icon: FlagIcon, tone: 'neutral' };
+  }
 }
