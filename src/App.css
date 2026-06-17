@@ -419,23 +419,70 @@
   background: var(--source);
 }
 
-/* ---------- Layout grid ---------- */
-.grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 16px;
-  align-items: start;
-}
-.col-left,
-.col-right {
+/* ---------- Tabs ---------- */
+.tabs {
   display: flex;
+  gap: 2px;
+  border-bottom: 1px solid var(--border);
+  overflow-x: auto;
+}
+.tab {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 0 0 auto;
+  background: none;
+  border: none;
+  padding: 11px 18px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--muted);
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  border-radius: 8px 8px 0 0;
+  white-space: nowrap;
+}
+.tab svg {
+  width: 17px;
+  height: 17px;
+}
+.tab:hover {
+  color: var(--text);
+  background: var(--panel-2);
+}
+.tab.active {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+}
+.tab-badge {
+  font-family: var(--mono);
+  font-size: 11px;
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  color: var(--muted);
+  border-radius: 999px;
+  padding: 1px 7px;
+}
+.tab.active .tab-badge {
+  color: var(--accent);
+  border-color: color-mix(in srgb, var(--accent) 45%, transparent);
+}
+.tab-hint {
+  margin: 2px 2px 0;
+  font-size: 13px;
+  color: var(--muted);
+  line-height: 1.45;
+}
+.tab-section {
+  display: none;
   flex-direction: column;
   gap: 16px;
 }
+.tab-section.is-active {
+  display: flex;
+}
+
 @media (max-width: 880px) {
-  .grid {
-    grid-template-columns: 1fr;
-  }
   .hero {
     grid-template-columns: 1fr;
     gap: 16px;
@@ -911,8 +958,14 @@
     border: 1px solid #ccc;
     break-inside: avoid;
   }
-  .grid {
-    grid-template-columns: 1fr;
+  /* Reveal every tab's content so the printout is a complete debrief sheet. */
+  .tab-section {
+    display: flex !important;
+  }
+  .tab-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
   }
   .app {
     gap: 12px;
