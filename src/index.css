@@ -1,0 +1,61 @@
+:root {
+  /* Neutral slate base + functional status colours. One brand accent (teal). */
+  --bg: #0e1116;
+  --panel: #161b22;
+  --panel-2: #1b212b;
+  --border: #262d39;
+  --border-soft: #1f2530;
+  --text: #e7eaf0;
+  --muted: #8b94a5;
+
+  --accent: #2dd4bf; /* teal — calculated / brand */
+  --ai: #f5a524; /* amber — AI suggestions */
+  --source: #748094; /* slate — source events */
+
+  --good: #22c55e;
+  --warn: #f59e0b;
+  --bad: #ef4444;
+  --crisis: #ef4444;
+  --info: #748094;
+
+  --radius: 10px;
+  --mono: ui-monospace, 'Cascadia Code', 'SFMono-Regular', Menlo, Consolas, monospace;
+  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  color-scheme: dark;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  background: var(--bg);
+  color: var(--text);
+  -webkit-font-smoothing: antialiased;
+}
+
+#root {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 28px 22px 60px;
+}
+
+h1,
+h2,
+h3 {
+  margin: 0;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+}
+
+button {
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.muted {
+  color: var(--muted);
+}
